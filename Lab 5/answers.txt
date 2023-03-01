@@ -1,0 +1,36 @@
+1) Describe what the Super Node is and what role it plays in the EXT2 file system.
+
+A: The super node is a node that contains information on the entire filesystem such as the total number of inodes and blocks, the address of the first data block, etc.
+
+
+2) Describe what the INODE is and what role it plays in the EXT2 file system.
+
+A: an INODE is a structure that contains information on an object within the filesystem such as a directory or file.
+It contains things such as the addresses of the file's data, as well as permissions.
+
+4) If we want inode number 10151 describe the algorithm needed get an INODE * pointer pointing at it.
+
+A: We will want to start at the first inode, which is handily indicated by the super node, this is referred to as inode_table.
+From there, we compute the INODES_PER_BLOCK by dividing the block size (in the super node) by the inode size (also in the super node)
+Once those are computed, we can find the inode on disk by computing the following,
+block = (ino - 1) / INODES_PER_BLOCK + inode_table;
+inode = (ino - 1) % INODES_PER_BLOCK;
+
+
+5) How many blocks can a single INODE * struct have at its disposal?
+
+A: An INODE * struct can have 12 pointers that go directly to data blocks, 1 pointer that points to a block with blk/pointer_size pointers to data blocks, and 1 pointer that points to a block with blk/pointer_size pointers to blocks that each contain blk/pointer_size pointers to data blocks.
+There is also a triply indirect pointer that points to a block with blk/pointer_size pointers that point to blocks with blk/pointer_size pointers to blocks with blk/pointer_size pointers that point to data blocks, but we did not implement this.
+In our case, blk=1024 and pointer_size=4, so blk/pointer_size = 256 so: 12+256+256^2+256^3= 16,843,020 blocks counting triply indirect blocks (65,804 without triply indirect blocks)
+
+
+6) Describe what the different kinds of content (in a general case) that might be found in the block of memory you get from get_block(fd, ip -> i_block[i], buf)
+
+A: this is going to be one of the data blocks from an inode, so it can either be a direct block that points to a location containing data, an indirect block that points to a block
+that then points to locations containing data, a doubly indirect block that points to a block that points to other blocks that then point to data, or a triply indirect block
+that points to a block that points to other blocks that each point to other blocks that then point to data.
+
+
+7)  What does it mean if `ip -> i_block[6] = 0;`?
+
+A: that i_block[6] from the inode ip does not point to anything, since 0 is the pointer to the super node.
